@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <!-- FORMULARIO DE REGISTRO -->
+    <div class="col-md-4 mb-4">
+        <div class="card p-3 shadow-sm">
+            <h5 class="mb-3">Registrar Repuesto</h5>
+            <form action="/agregar" method="POST" enctype="multipart/form-data">
+                <input type="text" name="codigo" class="form-control mb-2" placeholder="Código de Parte" required>
+                <input type="text" name="nombre" class="form-control mb-2" placeholder="Nombre / Descripción" required>
+                <input type="text" name="marca" class="form-control mb-2" placeholder="Marca">
+                <input type="text" name="compatibilidad" class="form-control mb-2" placeholder="Compatibilidad">
+                <input type="number" step="0.01" name="precio" class="form-control mb-2" placeholder="Precio ($)" required>
+                <input type="number" name="stock" class="form-control mb-2" placeholder="Stock Inicial" required>
+                
+                <label class="form-label small text-muted mb-1">Imagen del repuesto:</label>
+                <input type="file" name="imagen" class="form-control mb-3" accept="image/*">
+                
+                <button type="submit" class="btn btn-primary w-100">Guardar Producto</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- CONSULTA DE INVENTARIO Y BÚSQUEDA -->
+    <div class="col-md-8">
+        <div class="card p-3 shadow-sm mb-3">
+            <form action="/" method="GET" class="row g-2">
+                <div class="col-8 col-sm-9">
+                    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Buscar por código, nombre, marca o compatibilidad...">
+                </div>
+                <div class="col-4 col-sm-3 d-flex gap-1">
+                    <button type="submit" class="btn btn-secondary w-100">Buscar</button>
+                    {% if query %}
+                        <a href="/" class="btn btn-outline-danger" title="Limpiar filtro">✕</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-3 shadow-sm table-responsive">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    {% if query %}
+                        Resultados para: <span class="text-primary">"{{ query }}"</span>
+                    {% else %}
+                        Inventario Actual
+                    {% endif %}
+                </h5>
+                <span class="badge bg-danger">⚠️ Alerta Stock &lt; 2</span>
+            </div>
+
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Foto</th>
+                        <th>Código / Producto</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Venta Rápida</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    {% set p_stock = p[6] if p[6] is defined else p['stock'] %}
+                    {% set p_id = p[0] if p[0] is defined else p['id'] %}
+                    {% set p_codigo = p[1] if p[1] is defined else p['codigo'] %}
+                    {% set p_nombre = p[2] if p[2] is defined else p['nombre'] %}
+                    {% set p_marca = p[3] if p[3] is defined else p['marca'] %}
+                    {% set p_comp = p[4] if p[4] is defined else p['compatibilidad'] %}
+                    {% set p_precio = p[5] if p[5] is defined else p['precio'] %}
+                    {% set p_img = p[7] if p[7] is defined else p['imagen'] %}
+
+                    <tr class="{% if p_stock < 2 %}table-danger{% endif %}">
+                        <td>
+                            {% if p_img %}
+                                <img src="{{ p_img }}" alt="Repuesto" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                            {% else %}
+                                <span class="badge bg-secondary">Sin foto</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ p_codigo }}</strong> - {{ p_nombre }}<br>
+                            <small class="text-muted">{{ p_marca }} | {{ p_comp }}</small>
+                        </td>
+                        <td>${{ "%.2f"|format(p_precio) }}</td>
+                        <td>
+                            {% if p_stock < 2 %}
+                                <span class="badge bg-danger fs-6">{{ p_stock }}</span>
+                            {% else %}
+                                <span class="badge bg-success fs-6">{{ p_stock }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="/vender" method="POST" class="d-flex">
+                                <input type="hidden" name="producto_id" value="{{ p_id }}">
+                                <input type="number" name="cantidad" value="1" min="1" max="{{ p_stock }}" class="form-control form-control-sm me-1" style="width: 55px;">
+                                <button type="submit" class="btn btn-sm btn-success" {% if p_stock == 0 %}disabled{% endif %}>Vender</button>
+                            </form>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ p_id }}">
+                                    ✏️
+                                </button>
+                                <form action="/eliminar/{{ p_id }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este repuesto?');">
+                                    <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                                </form>
+                            </div>
+
+                            <!-- MODAL EDITAR -->
+                            <div class="modal fade" id="editModal{{ p_id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Editar {{ p_nombre }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form action="/editar" method="POST">
+                                            <div class="modal-body text-start">
+                                                <input type="hidden" name="producto_id" value="{{ p_id }}">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Precio ($):</label>
+                                                    <input type="number" step="0.01" name="precio" value="{{ p_precio }}" class="form-control" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Stock Actual:</label>
+                                                    <input type="number" name="stock" value="{{ p_stock }}" class="form-control" required>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            No se encontraron repuestos en el inventario.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

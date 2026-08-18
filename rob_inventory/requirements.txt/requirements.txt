@@ -1,0 +1,7 @@
+Flask
+Werkzeug
+Flask-Login
+gunicorn
+psycopg2-binary
+cloudinary
+

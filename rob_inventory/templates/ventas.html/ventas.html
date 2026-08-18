@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card p-3 shadow-sm table-responsive">
+    <h5 class="mb-3">Historial de Ventas</h5>
+    <table class="table table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID Venta</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Total ($)</th>
+                <th>Fecha / Hora</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in ventas %}
+            {% set v_id = v[0] if v[0] is defined else v['id'] %}
+            {% set v_nombre = v[2] if v[2] is defined else v['nombre'] %}
+            {% set v_cant = v[3] if v[3] is defined else v['cantidad'] %}
+            {% set v_total = v[4] if v[4] is defined else v['total'] %}
+            {% set v_fecha = v[5] if v[5] is defined else v['fecha'] %}
+            <tr>
+                <td>#{{ v_id }}</td>
+                <td><strong>{{ v_nombre }}</strong></td>
+                <td>{{ v_cant }}</td>
+                <td>${{ "%.2f"|format(v_total) }}</td>
+                <td>{{ v_fecha }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-3">No hay ventas registradas aún.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
